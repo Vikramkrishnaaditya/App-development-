@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project UNIFY - Web Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+      .status-dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; transition: background-color 0.3s ease; }
+      .status-disconnected { background-color: #ef4444; /* red-500 */ }
+      .status-connecting { background-color: #f59e0b; /* amber-500 */ animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+      .status-connected { background-color: #22c55e; /* green-500 */ }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+      .toggle-checkbox:checked { right: 0; border-color: #4ade80; }
+      .toggle-checkbox:checked + .toggle-label { background-color: #4ade80; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl mx-auto bg-gray-800 rounded-xl shadow-2xl p-6 space-y-6">
+        <header class="text-center border-b border-gray-700 pb-4">
+            <h1 class="text-3xl font-bold text-white">Project UNIFY Dashboard</h1>
+            <p class="text-gray-400 mt-1">P2P Device Suite Prototype</p>
+        </header>
+
+        <!-- Connection Area -->
+        <section id="connection-area">
+             <div class="bg-gray-700 p-4 rounded-lg space-y-4 text-center">
+                <h2 class="text-xl font-semibold mb-3 flex items-center justify-center">
+                    <span id="status-indicator" class="status-dot status-disconnected mr-3" title="Disconnected"></span>
+                    <span id="status-text" class="text-lg">Disconnected</span>
+                </h2>
+                <div id="pre-connect-btns" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="create-session-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">Create Session</button>
+                    <button id="join-session-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">Join Session</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard -->
+        <main id="dashboard-area" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Left Column -->
+            <div class="space-y-6">
+                <!-- Permissions Card -->
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-white">Permissions</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label for="clipboard-toggle" class="font-medium text-gray-300">Clipboard Sync</label>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="clipboard-toggle" id="clipboard-toggle" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="clipboard-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                            </div>
+                        </div>
+                         <div class="flex items-center justify-between">
+                            <label for="notifications-toggle" class="font-medium text-gray-300">Notifications</label>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="notifications-toggle" id="notifications-toggle" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="notifications-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Tools Card -->
+                 <div class="bg-gray-700 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-4 text-white">Tools</h3>
+                    <div class="space-y-4">
+                        <button id="find-device-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Find My Device</button>
+                        <div class="space-y-2">
+                            <label for="notification-input" class="block text-sm font-medium text-gray-300">Send Test Notification</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="notification-input" class="w-full bg-gray-800 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Enter message...">
+                                <button id="send-notification-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <!-- Shared Clipboard -->
+                <div class="bg-gray-700 p-4 rounded-lg">
+                    <label for="shared-clipboard" class="block text-lg font-semibold text-white mb-2">Shared Clipboard</label>
+                    <textarea id="shared-clipboard" rows="6" class="w-full bg-gray-800 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Type here to sync..."></textarea>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="space-y-6">
+                <!-- File Transfer -->
+                <div class="bg-gray-700 p-4 rounded-lg">
+                     <h3 class="text-lg font-semibold text-white mb-4">File Transfer</h3>
+                    <label for="file-input" class="block text-sm font-medium text-gray-300 mb-2">Push File</label>
+                    <input type="file" id="file-input" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                    <div id="file-transfer-log" class="mt-4">
+                        <h4 class="text-md font-semibold text-gray-300 mb-2">Transfer Log</h4>
+                        <div id="file-log-list" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-2 bg-gray-800 p-2 rounded-md">
+                            <!-- File logs will be appended here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- QR Modal -->
+    <div id="qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-md w-full text-center">
+            <h2 id="qr-modal-title" class="text-2xl font-bold mb-4">Scan this QR Code</h2>
+            <div id="qr-code-container" class="flex justify-center mb-4"></div>
+            <video id="qr-scanner" class="hidden w-full rounded-lg"></video>
+            <p id="qr-modal-text" class="text-gray-400 my-2">Open the app on your other device and choose 'Join Session' to scan this code.</p>
+            <button id="qr-modal-close" class="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            const dashboardArea = document.getElementById('dashboard-area');
+            const connectionArea = document.getElementById('connection-area');
+            const preConnectBtns = document.getElementById('pre-connect-btns');
+            
+            const createSessionBtn = document.getElementById('create-session-btn');
+            const joinSessionBtn = document.getElementById('join-session-btn');
+            
+            const sharedClipboard = document.getElementById('shared-clipboard');
+            const fileInput = document.getElementById('file-input');
+            const fileLogList = document.getElementById('file-log-list');
+
+            const findDeviceBtn = document.getElementById('find-device-btn');
+            const notificationInput = document.getElementById('notification-input');
+            const sendNotificationBtn = document.getElementById('send-notification-btn');
+
+            const clipboardToggle = document.getElementById('clipboard-toggle');
+            const notificationsToggle = document.getElementById('notifications-toggle');
+
+            const qrModal = document.getElementById('qr-modal');
+            const qrModalTitle = document.getElementById('qr-modal-title');
+            const qrModalText = document.getElementById('qr-modal-text');
+            const qrCodeContainer = document.getElementById('qr-code-container');
+            const qrScanner = document.getElementById('qr-scanner');
+            const qrModalClose = document.getElementById('qr-modal-close');
+
+            // --- State Variables ---
+            let peerConnection;
+            let dataChannel;
+            let audioContext;
+            let oscillator;
+            let isRinging = false;
+            let scannerAnimation;
+            let localStream;
+            const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+            const receivingFileMetadata = {};
+            const receivingFileBuffer = {};
+            const CHUNK_SIZE = 16384;
+
+            // --- UI & Status Functions ---
+            const updateStatus = (text, statusClass) => {
+                statusText.textContent = text;
+                statusIndicator.className = `status-dot ${statusClass}`;
+            };
+
+            const logFileMessage = (message, isDownloadLink = false) => {
+                const p = document.createElement('p');
+                p.className = 'text-gray-400';
+                p.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`; // Safely use innerHTML as we control the content
+                fileLogList.prepend(p);
+            };
+
+            const showDashboard = (show) => {
+                if (show) {
+                    dashboardArea.classList.remove('hidden');
+                    preConnectBtns.classList.add('hidden');
+                } else {
+                    dashboardArea.classList.add('hidden');
+                    preConnectBtns.classList.remove('hidden');
+                }
+            };
+
+            const showQrModal = (opts) => { // {mode: 'generate'/'scan', title, text, data}
+                qrModalTitle.textContent = opts.title;
+                qrModalText.textContent = opts.text;
+                qrCodeContainer.innerHTML = '';
+                qrScanner.classList.add('hidden');
+
+                if (opts.mode === 'generate') {
+                    const canvas = document.createElement('canvas');
+                    qrCodeContainer.appendChild(canvas);
+                    QRCode.toCanvas(canvas, opts.data, { width: 256 }, (error) => {
+                        if (error) console.error(error);
+                    });
+                } else if (opts.mode === 'scan') {
+                    qrScanner.classList.remove('hidden');
+                    startScanner();
+                }
+                qrModal.classList.remove('hidden');
+            };
+            
+            const hideQrModal = () => {
+                stopScanner();
+                qrModal.classList.add('hidden');
+            };
+
+            // --- WebRTC Core Logic ---
+            const setupPeerConnection = () => {
+                peerConnection = new RTCPeerConnection(configuration);
+
+                peerConnection.onicecandidate = event => {
+                     // ICE gathering is handled automatically. We just need to signal the final description.
+                };
+
+                peerConnection.ondatachannel = event => {
+                    dataChannel = event.channel;
+                    setupDataChannelEvents();
+                };
+
+                peerConnection.onconnectionstatechange = () => {
+                    switch(peerConnection.connectionState) {
+                        case 'connected':
+                            updateStatus('Connected', 'status-connected');
+                            showDashboard(true);
+                            hideQrModal();
+                            break;
+                        case 'disconnected':
+                        case 'closed':
+                        case 'failed':
+                            updateStatus('Disconnected', 'status-disconnected');
+                            showDashboard(false);
+                            break;
+                        case 'connecting':
+                            updateStatus('Connecting...', 'status-connecting');
+                            break;
+                    }
+                };
+                return peerConnection;
+            };
+
+            const setupDataChannelEvents = () => {
+                dataChannel.onopen = () => console.log('Data channel is open');
+                dataChannel.onclose = () => console.log('Data channel is closed');
+                dataChannel.onmessage = event => handleDataChannelMessage(event.data);
+            };
+
+            // --- Handlers ---
+            const handleDataChannelMessage = (data) => {
+                if (data instanceof ArrayBuffer) {
+                    handleFileChunk(data);
+                    return;
+                }
+
+                try {
+                    const message = JSON.parse(data);
+                    switch(message.type) {
+                        case 'clipboard':
+                            if (clipboardToggle.checked) sharedClipboard.value = message.content;
+                            break;
+                        case 'file-meta':
+                            handleFileMeta(message.payload);
+                            break;
+                        case 'file-end':
+                            handleFileEnd(message.payload);
+                            break;
+                        case 'find-device':
+                            toggleRingtone();
+                            break;
+                        case 'notification':
+                            if (notificationsToggle.checked) showNotification(message.payload);
+                            break;
+                        case 'answer': // Answer received via data channel (after initial connection)
+                             if (peerConnection && peerConnection.signalingState === "have-local-offer") {
+                                peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(message.payload)));
+                             }
+                            break;
+                    }
+                } catch (error) {
+                    console.error('Failed to parse message:', error);
+                }
+            };
+            
+            // File Handling
+            const handleFileMeta = ({ name, size, type }) => {
+                receivingFileMetadata[name] = { size, type };
+                receivingFileBuffer[name] = [];
+                const formattedSize = (size / 1024 / 1024).toFixed(2);
+                logFileMessage(`Receiving: ${name} (${formattedSize} MB)`);
+            };
+
+            const handleFileEnd = ({ name }) => {
+                const fileData = receivingFileMetadata[name];
+                if(fileData && receivingFileBuffer[name]) {
+                    const receivedBlob = new Blob(receivingFileBuffer[name], { type: fileData.type });
+                    const downloadUrl = URL.createObjectURL(receivedBlob);
+                    const logMessage = `Received "${name}". <a href="${downloadUrl}" download="${name}" class="text-green-400 hover:underline font-bold">Download</a>.`;
+                    logFileMessage(logMessage);
+                    delete receivingFileMetadata[name];
+                    delete receivingFileBuffer[name];
+                }
+            };
+
+            const handleFileChunk = (chunk) => {
+                const fileName = Object.keys(receivingFileMetadata)[0];
+                if (fileName && receivingFileBuffer[fileName]) {
+                    receivingFileBuffer[fileName].push(chunk);
+                }
+            };
+            
+            const sendFile = (file) => {
+                if (!dataChannel || dataChannel.readyState !== 'open') return;
+                logFileMessage(`Sending: ${file.name}`);
+
+                dataChannel.send(JSON.stringify({ type: 'file-meta', payload: { name: file.name, size: file.size, type: file.type } }));
+                
+                let offset = 0;
+                const fileReader = new FileReader();
+                fileReader.onload = (e) => {
+                    dataChannel.send(e.target.result);
+                    offset += e.target.result.byteLength;
+                    if (offset < file.size) {
+                        readSlice(offset);
+                    } else {
+                        dataChannel.send(JSON.stringify({ type: 'file-end', payload: { name: file.name }}));
+                        logFileMessage(`Finished sending ${file.name}.`);
+                    }
+                };
+                const readSlice = (o) => {
+                    const slice = file.slice(o, o + CHUNK_SIZE);
+                    fileReader.readAsArrayBuffer(slice);
+                };
+                readSlice(0);
+            };
+
+            // --- Feature Functions ---
+            const toggleRingtone = () => {
+                if (isRinging) {
+                    oscillator.stop();
+                    audioContext.close();
+                    isRinging = false;
+                    alert('Ringtone stopped.');
+                } else {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(900, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.01);
+                    
+                    oscillator.start();
+                    isRinging = true;
+
+                    alert("'Find My Device' activated! Click OK to stop the sound.");
+                    toggleRingtone(); // Immediately stop it after acknowledgment
+                }
+            };
+            
+            const showNotification = ({ title, body }) => {
+                if (!("Notification" in window)) {
+                    alert("This browser does not support desktop notification");
+                    return;
+                }
+                if (Notification.permission === "granted") {
+                    new Notification(title, { body });
+                } else if (Notification.permission !== "denied") {
+                    Notification.requestPermission().then((permission) => {
+                        if (permission === "granted") {
+                            new Notification(title, { body });
+                        }
+                    });
+                }
+            };
+            
+            const startScanner = async () => {
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    qrScanner.srcObject = localStream;
+                    qrScanner.play();
+                    scannerAnimation = requestAnimationFrame(tick);
+                } catch (err) {
+                    console.error("Error accessing camera", err);
+                    qrModalText.textContent = "Could not access camera. Please grant permission.";
+                }
+            };
+
+            const stopScanner = () => {
+                if (scannerAnimation) cancelAnimationFrame(scannerAnimation);
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                qrScanner.srcObject = null;
+            };
+            
+            const tick = () => {
+                if (qrScanner.readyState === qrScanner.HAVE_ENOUGH_DATA) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.height = qrScanner.videoHeight;
+                    canvas.width = qrScanner.videoWidth;
+                    ctx.drawImage(qrScanner, 0, 0, canvas.width, canvas.height);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+                    
+                    if (code) {
+                        handleQrCode(code.data);
+                        return;
+                    }
+                }
+                scannerAnimation = requestAnimationFrame(tick);
+            };
+
+            const handleQrCode = async (data) => {
+                stopScanner();
+                try {
+                    const offer = JSON.parse(data);
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+
+                    // Now, the joining device needs to send its answer back.
+                    // We'll generate a QR code for the answer.
+                    const answerSdp = JSON.stringify(peerConnection.localDescription);
+                    showQrModal({
+                        mode: 'generate',
+                        title: 'Scan Answer on Other Device',
+                        text: 'Now, use the first device to scan this answer QR code to complete the connection.',
+                        data: answerSdp
+                    });
+
+                } catch (error) {
+                    console.error('Failed to process QR code data:', error);
+                    alert('Invalid QR code. Please try again.');
+                    hideQrModal();
+                }
+            };
+            
+            // --- Event Listeners ---
+            createSessionBtn.addEventListener('click', async () => {
+                const pc = setupPeerConnection();
+                dataChannel = pc.createDataChannel('unify-channel');
+                setupDataChannelEvents();
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                
+                // Wait for ICE gathering to complete to get the full offer
+                pc.onicegatheringstatechange = () => {
+                    if (pc.iceGatheringState === 'complete') {
+                        const offerSdp = JSON.stringify(pc.localDescription);
+                        showQrModal({ 
+                            mode: 'generate', 
+                            title: 'Session Offer',
+                            text: 'Scan this with your other device to connect.',
+                            data: offerSdp
+                        });
+                    }
+                };
+            });
+
+            joinSessionBtn.addEventListener('click', () => {
+                const pc = setupPeerConnection();
+                showQrModal({ 
+                    mode: 'scan',
+                    title: 'Scan Session Offer',
+                    text: 'Point your camera at the QR code on the other device.'
+                });
+            });
+
+            qrModalClose.addEventListener('click', hideQrModal);
+
+            sharedClipboard.addEventListener('input', (e) => {
+                if (dataChannel && dataChannel.readyState === 'open' && clipboardToggle.checked) {
+                    dataChannel.send(JSON.stringify({ type: 'clipboard', content: e.target.value }));
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) sendFile(file);
+            });
+            
+            findDeviceBtn.addEventListener('click', () => {
+                 if (dataChannel && dataChannel.readyState === 'open') {
+                    dataChannel.send(JSON.stringify({ type: 'find-device' }));
+                 }
+            });
+
+            sendNotificationBtn.addEventListener('click', () => {
+                const msg = notificationInput.value.trim();
+                if (msg && dataChannel && dataChannel.readyState === 'open' && notificationsToggle.checked) {
+                    dataChannel.send(JSON.stringify({ type: 'notification', payload: { title: 'New Message', body: msg }}));
+                    notificationInput.value = '';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{
+  "name": "Project UNIFY - Web Prototype",
+  "description": "A web-based prototype for a secure, peer-to-peer device suite using WebRTC. Features clipboard/file sharing, notification sync, and 'find my device' functionality, all connected via a QR code handshake.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
