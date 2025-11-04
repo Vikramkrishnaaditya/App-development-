@@ -3,500 +3,948 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Project UNIFY - Web Prototype</title>
+    <title>Gemini Suite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+      :root { --accent-color: #4f46e5; --accent-color-hover: #4338ca; }
       .status-dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; transition: background-color 0.3s ease; }
-      .status-disconnected { background-color: #ef4444; /* red-500 */ }
-      .status-connecting { background-color: #f59e0b; /* amber-500 */ animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-      .status-connected { background-color: #22c55e; /* green-500 */ }
+      .status-disconnected { background-color: #ef4444; }
+      .status-connecting { background-color: #f59e0b; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+      .status-connected { background-color: #22c55e; }
       @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-      .toggle-checkbox:checked { right: 0; border-color: #4ade80; }
-      .toggle-checkbox:checked + .toggle-label { background-color: #4ade80; }
+      .toggle-checkbox:checked { right: 0; border-color: var(--accent-color); }
+      .toggle-checkbox:checked + .toggle-label { background-color: var(--accent-color); }
+      .sidebar-btn { transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; }
+      .sidebar-btn.active { background-color: var(--accent-color); color: white; }
+      .sidebar-btn:hover:not(.active) { background-color: #374151; }
+      .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-color); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      /* Markdown styles */
+      .prose { color: #d1d5db; }
+      .prose h1, .prose h2, .prose h3 { color: #fff; }
+      .prose a { color: #818cf8; }
+      .prose strong { color: #fff; }
+      .prose pre { background-color: #1f2937; padding: 1rem; border-radius: 0.5rem; }
+      .prose code { color: #f9fafb; }
+      .prose blockquote { border-left-color: #4b5563; }
+      .prose ul > li::before { background-color: #6b7280; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 font-sans flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-900 text-gray-200 font-sans flex h-screen">
 
-    <div class="w-full max-w-4xl mx-auto bg-gray-800 rounded-xl shadow-2xl p-6 space-y-6">
-        <header class="text-center border-b border-gray-700 pb-4">
-            <h1 class="text-3xl font-bold text-white">Project UNIFY Dashboard</h1>
-            <p class="text-gray-400 mt-1">P2P Device Suite Prototype</p>
+    <!-- Sidebar -->
+    <aside class="bg-gray-800 text-white w-20 lg:w-64 flex flex-col">
+        <div class="h-16 flex items-center justify-center lg:justify-start lg:pl-6 border-b border-gray-700">
+            <svg class="w-8 h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93s3.05-7.44 7-7.93v15.86zm2-15.86c1.03.13 2 .45 2.87.93H13v-.93zM13 7h5.24c.25.31.48.65.68 1H13V7zm0 3h6.74c.08.33.15.66.19 1H13v-1zm0 3h6.93c-.04.34-.11.67-.19 1H13v-1zm0 3h5.87c-.87.48-1.84.8-2.87.93V16zm-1.5-3H8c0 1.38.47 2.64 1.25 3.61L11.5 13zm-3.11 5.25C6.73 16.99 6 15.61 6 14.05h2.05l2.44 2.44-1.5 1.76zM8.05 12H6c0-1.56.73-2.94 1.89-3.95l1.5 1.76-1.34 2.19z"></path></svg>
+            <span class="hidden lg:inline ml-3 text-xl font-bold">Gemini Suite</span>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button data-view="chat" class="sidebar-btn w-full flex items-center p-3 rounded-lg active">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                <span class="hidden lg:inline ml-4">Chat</span>
+            </button>
+            <button data-view="image" class="sidebar-btn w-full flex items-center p-3 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <span class="hidden lg:inline ml-4">Image Studio</span>
+            </button>
+            <button data-view="video" class="sidebar-btn w-full flex items-center p-3 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                <span class="hidden lg:inline ml-4">Video Studio</span>
+            </button>
+             <button data-view="analyzer" class="sidebar-btn w-full flex items-center p-3 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <span class="hidden lg:inline ml-4">Content Analyzer</span>
+            </button>
+            <button data-view="live" class="sidebar-btn w-full flex items-center p-3 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                <span class="hidden lg:inline ml-4">Live Conversation</span>
+            </button>
+            <button data-view="sync" class="sidebar-btn w-full flex items-center p-3 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2zM5 11h.01M19 11h.01" /></svg>
+                <span class="hidden lg:inline ml-4">Device Sync</span>
+            </button>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col h-screen">
+        <header class="bg-gray-800 h-16 flex items-center justify-between px-6 border-l border-gray-700">
+             <h2 id="view-title" class="text-xl font-semibold text-white">Chat</h2>
+             <div class="flex items-center space-x-4">
+                <div id="p2p-status-container" class="hidden flex items-center">
+                    <span id="status-indicator" class="status-dot status-disconnected" title="Disconnected"></span>
+                    <span id="status-text" class="ml-2 text-sm">Disconnected</span>
+                </div>
+                 <button id="disconnect-btn" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Disconnect</button>
+             </div>
         </header>
 
-        <!-- Connection Area -->
-        <section id="connection-area">
-             <div class="bg-gray-700 p-4 rounded-lg space-y-4 text-center">
-                <h2 class="text-xl font-semibold mb-3 flex items-center justify-center">
-                    <span id="status-indicator" class="status-dot status-disconnected mr-3" title="Disconnected"></span>
-                    <span id="status-text" class="text-lg">Disconnected</span>
-                </h2>
-                <div id="pre-connect-btns" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button id="create-session-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">Create Session</button>
-                    <button id="join-session-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">Join Session</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Main Dashboard -->
-        <main id="dashboard-area" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Left Column -->
-            <div class="space-y-6">
-                <!-- Permissions Card -->
-                <div class="bg-gray-700 p-4 rounded-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-white">Permissions</h3>
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <label for="clipboard-toggle" class="font-medium text-gray-300">Clipboard Sync</label>
-                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" name="clipboard-toggle" id="clipboard-toggle" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                                <label for="clipboard-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
-                            </div>
+        <main class="flex-1 overflow-y-auto p-6 bg-gray-900">
+            <!-- Chat View -->
+            <div id="view-chat">
+                <div id="chat-history" class="space-y-6 mb-4 max-w-4xl mx-auto"></div>
+                <div class="fixed bottom-0 left-20 lg:left-64 right-0 bg-gray-900 p-4 border-t border-gray-700">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="flex items-center bg-gray-800 rounded-lg p-2">
+                            <textarea id="chat-input" class="w-full bg-transparent text-gray-200 resize-none focus:outline-none p-2" placeholder="Ask Gemini anything..." rows="1"></textarea>
+                            <button id="chat-send-btn" class="ml-2 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full disabled:bg-indigo-900 disabled:cursor-not-allowed">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+                            </button>
                         </div>
-                         <div class="flex items-center justify-between">
-                            <label for="notifications-toggle" class="font-medium text-gray-300">Notifications</label>
-                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" name="notifications-toggle" id="notifications-toggle" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                                <label for="notifications-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                        <div class="flex items-center space-x-4 mt-2">
+                             <div class="flex items-center">
+                                <input type="checkbox" id="chat-search-toggle" class="form-checkbox h-5 w-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500">
+                                <label for="chat-search-toggle" class="ml-2 text-sm text-gray-400">Google Search</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="chat-maps-toggle" class="form-checkbox h-5 w-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500">
+                                <label for="chat-maps-toggle" class="ml-2 text-sm text-gray-400">Google Maps</label>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!-- Tools Card -->
-                 <div class="bg-gray-700 p-4 rounded-lg">
-                    <h3 class="text-lg font-semibold mb-4 text-white">Tools</h3>
+            </div>
+
+            <!-- Image Studio View -->
+            <div id="view-image" class="hidden">
+                 <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Image Generation -->
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h3 class="text-xl font-bold mb-4">Generate Image</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="igen-prompt" class="block text-sm font-medium text-gray-300">Prompt</label>
+                                <textarea id="igen-prompt" rows="3" class="mt-1 w-full bg-gray-700 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="A futuristic cityscape at sunset..."></textarea>
+                            </div>
+                            <div>
+                                <label for="igen-aspect-ratio" class="block text-sm font-medium text-gray-300">Aspect Ratio</label>
+                                <select id="igen-aspect-ratio" class="mt-1 w-full bg-gray-700 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                    <option>1:1</option>
+                                    <option>16:9</option>
+                                    <option>9:16</option>
+                                    <option>4:3</option>
+                                    <option>3:4</option>
+                                </select>
+                            </div>
+                             <button id="igen-generate-btn" class="w-full flex justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg disabled:bg-indigo-900 disabled:cursor-not-allowed">Generate</button>
+                        </div>
+                        <div id="igen-output" class="mt-6 bg-gray-900 rounded-lg aspect-square flex items-center justify-center">
+                            <p class="text-gray-500">Your generated image will appear here</p>
+                        </div>
+                    </div>
+                    <!-- Image Editing -->
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h3 class="text-xl font-bold mb-4">Edit Image</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="iedit-upload" class="block text-sm font-medium text-gray-300">Upload Image</label>
+                                <input type="file" id="iedit-upload" accept="image/*" class="mt-1 block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                                <div id="iedit-preview" class="mt-2 h-40 bg-gray-700 rounded-lg flex items-center justify-center">
+                                    <p class="text-gray-500 text-sm">Preview</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="iedit-prompt" class="block text-sm font-medium text-gray-300">Edit Instruction</label>
+                                <textarea id="iedit-prompt" rows="2" class="mt-1 w-full bg-gray-700 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Add a hat to the person..."></textarea>
+                            </div>
+                             <button id="iedit-generate-btn" class="w-full flex justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg disabled:bg-indigo-900 disabled:cursor-not-allowed">Apply Edit</button>
+                        </div>
+                         <div id="iedit-output" class="mt-6 bg-gray-900 rounded-lg aspect-square flex items-center justify-center">
+                            <p class="text-gray-500">Your edited image will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Video Studio View -->
+            <div id="view-video" class="hidden">
+                 <div class="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg">
+                    <h3 class="text-xl font-bold mb-4">Generate Video with Veo</h3>
                     <div class="space-y-4">
-                        <button id="find-device-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Find My Device</button>
-                        <div class="space-y-2">
-                            <label for="notification-input" class="block text-sm font-medium text-gray-300">Send Test Notification</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="notification-input" class="w-full bg-gray-800 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Enter message...">
-                                <button id="send-notification-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">Send</button>
-                            </div>
+                        <div>
+                             <label for="vgen-upload" class="block text-sm font-medium text-gray-300">Source Image (Optional)</label>
+                             <input type="file" id="vgen-upload" accept="image/*" class="mt-1 block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
                         </div>
+                        <div>
+                            <label for="vgen-prompt" class="block text-sm font-medium text-gray-300">Prompt</label>
+                            <textarea id="vgen-prompt" rows="3" class="mt-1 w-full bg-gray-700 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="A cinematic shot of a car driving through a neon-lit city..."></textarea>
+                        </div>
+                        <div>
+                             <label for="vgen-aspect-ratio" class="block text-sm font-medium text-gray-300">Aspect Ratio</label>
+                             <select id="vgen-aspect-ratio" class="mt-1 w-full bg-gray-700 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option>16:9</option>
+                                <option>9:16</option>
+                            </select>
+                        </div>
+                        <button id="vgen-generate-btn" class="w-full flex justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg disabled:bg-indigo-900 disabled:cursor-not-allowed">Generate Video</button>
                     </div>
-                </div>
-                 <!-- Shared Clipboard -->
-                <div class="bg-gray-700 p-4 rounded-lg">
-                    <label for="shared-clipboard" class="block text-lg font-semibold text-white mb-2">Shared Clipboard</label>
-                    <textarea id="shared-clipboard" rows="6" class="w-full bg-gray-800 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Type here to sync..."></textarea>
+                     <div id="vgen-output" class="mt-6 bg-gray-900 rounded-lg aspect-video flex items-center justify-center">
+                        <p class="text-gray-500 p-4 text-center">Your generated video will appear here. This may take a few minutes.</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Right Column -->
-            <div class="space-y-6">
-                <!-- File Transfer -->
-                <div class="bg-gray-700 p-4 rounded-lg">
-                     <h3 class="text-lg font-semibold text-white mb-4">File Transfer</h3>
-                    <label for="file-input" class="block text-sm font-medium text-gray-300 mb-2">Push File</label>
-                    <input type="file" id="file-input" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
-                    <div id="file-transfer-log" class="mt-4">
-                        <h4 class="text-md font-semibold text-gray-300 mb-2">Transfer Log</h4>
-                        <div id="file-log-list" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-2 bg-gray-800 p-2 rounded-md">
-                            <!-- File logs will be appended here -->
+            <!-- Content Analyzer View -->
+            <div id="view-analyzer" class="hidden">
+                 <div class="max-w-4xl mx-auto bg-gray-800 p-6 rounded-lg">
+                     <h3 class="text-xl font-bold mb-4">Analyze Content</h3>
+                     <div class="space-y-4">
+                        <div>
+                             <label for="analyzer-upload" class="block text-sm font-medium text-gray-300">Upload Image, Audio, or Video</label>
+                             <input type="file" id="analyzer-upload" accept="image/*,audio/*,video/*" class="mt-1 block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
                         </div>
+                        <div>
+                            <label for="analyzer-prompt" class="block text-sm font-medium text-gray-300">Question</label>
+                            <textarea id="analyzer-prompt" rows="3" class="mt-1 w-full bg-gray-700 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="What is in this image? / Summarize this video. / Transcribe this audio."></textarea>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="analyzer-thinking-toggle" class="form-checkbox h-5 w-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500">
+                            <label for="analyzer-thinking-toggle" class="ml-2 text-sm text-gray-400">Use Thinking Mode (For Complex Queries on Gemini Pro)</label>
+                        </div>
+                        <button id="analyzer-generate-btn" class="w-full flex justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg disabled:bg-indigo-900 disabled:cursor-not-allowed">Analyze</button>
                     </div>
+                    <div id="analyzer-output" class="mt-6 prose prose-invert max-w-none bg-gray-900 rounded-lg p-4 min-h-[10rem]">
+                         <p class="text-gray-500">Analysis will appear here.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Conversation View -->
+            <div id="view-live" class="hidden">
+                 <div class="max-w-4xl mx-auto text-center">
+                    <h3 class="text-3xl font-bold mb-6">Live Conversation</h3>
+                    <button id="live-toggle-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-full text-xl transition-all duration-300">Start Conversation</button>
+                    <div id="live-status" class="mt-6 text-lg text-gray-400">Status: Idle</div>
+                    <div id="live-transcription" class="mt-6 text-left bg-gray-800 p-4 rounded-lg min-h-[200px] max-h-[50vh] overflow-y-auto space-y-2">
+                         <p class="text-gray-500">Conversation transcription will appear here...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Sync View -->
+            <div id="view-sync" class="hidden">
+                <div class="w-full max-w-4xl mx-auto space-y-6">
+                     <section id="connection-area">
+                         <div class="bg-gray-800 p-4 rounded-lg space-y-4 text-center">
+                            <h2 class="text-xl font-semibold mb-3 flex items-center justify-center">Device Connection</h2>
+                            <div id="pre-connect-btns" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <button id="create-session-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">Create Session</button>
+                                <button id="join-session-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">Join Session</button>
+                            </div>
+                        </div>
+                    </section>
+                    <main id="dashboard-area" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Left Column -->
+                        <div class="space-y-6">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h3 class="text-lg font-semibold mb-4 text-white">Permissions</h3>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between"><label for="clipboard-toggle" class="font-medium text-gray-300">Clipboard Sync</label><div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"><input type="checkbox" name="clipboard-toggle" id="clipboard-toggle" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/><label for="clipboard-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label></div></div>
+                                    <div class="flex items-center justify-between"><label for="notifications-toggle" class="font-medium text-gray-300">Notifications</label><div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"><input type="checkbox" name="notifications-toggle" id="notifications-toggle" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/><label for="notifications-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label></div></div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h3 class="text-lg font-semibold mb-4 text-white">Tools</h3>
+                                <div class="space-y-4">
+                                    <button id="find-device-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Find My Device</button>
+                                    <div class="space-y-2"><label for="notification-input" class="block text-sm font-medium text-gray-300">Send Test Notification</label><div class="flex gap-2"><input type="text" id="notification-input" class="w-full bg-gray-700 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Enter message..."><button id="send-notification-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">Send</button></div></div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <label for="shared-clipboard" class="block text-lg font-semibold text-white mb-2">Shared Clipboard</label>
+                                <textarea id="shared-clipboard" rows="6" class="w-full bg-gray-700 text-gray-200 rounded-lg p-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Type here to sync..."></textarea>
+                            </div>
+                        </div>
+                        <!-- Right Column -->
+                        <div class="space-y-6">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h3 class="text-lg font-semibold text-white mb-4">File Transfer</h3>
+                                <label for="file-input" class="block text-sm font-medium text-gray-300 mb-2">Push File</label>
+                                <input type="file" id="file-input" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                                <div id="file-transfer-log" class="mt-4"><h4 class="text-md font-semibold text-gray-300 mb-2">Transfer Log</h4><div id="file-log-list" class="space-y-2 text-sm max-h-48 overflow-y-auto pr-2 bg-gray-700 p-2 rounded-md"></div></div>
+                            </div>
+                        </div>
+                    </main>
                 </div>
             </div>
         </main>
     </div>
 
     <!-- QR Modal -->
-    <div id="qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4">
-        <div class="bg-gray-800 rounded-lg p-6 max-w-md w-full text-center">
+    <div id="qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-md w-full text-center flex flex-col items-center">
             <h2 id="qr-modal-title" class="text-2xl font-bold mb-4">Scan this QR Code</h2>
             <div id="qr-code-container" class="flex justify-center mb-4"></div>
             <video id="qr-scanner" class="hidden w-full rounded-lg"></video>
-            <p id="qr-modal-text" class="text-gray-400 my-2">Open the app on your other device and choose 'Join Session' to scan this code.</p>
+            <p id="qr-modal-text" class="text-gray-400 my-2 break-words"></p>
+            <button id="qr-modal-next" class="hidden mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Next: Scan Answer</button>
             <button id="qr-modal-close" class="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
         </div>
     </div>
+    
+    <script type="module">
+        import { GoogleGenAI, Modality, Type } from 'https://esm.run/@google/genai';
 
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        function initApp() {
+            // --- GLOBAL STATE & CONFIG ---
+            let ai;
+            let chat;
+            let isGenerating = false;
+            let currentView = 'chat';
+            // Live API state
+            let liveSessionPromise = null;
+            let inputAudioContext = null;
+            let outputAudioContext = null;
+            let localMediaStream = null;
+            let scriptProcessorNode = null;
+            let nextAudioStartTime = 0;
+            const liveAudioSources = new Set();
+            let currentInputTranscription = '';
+            let currentOutputTranscription = '';
+            
+            // --- INITIALIZATION ---
+            function initializeApi() {
+                try {
+                    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                    chat = ai.chats.create({ model: 'gemini-2.5-flash' });
+                } catch(e) {
+                    console.error("Failed to initialize GoogleGenAI:", e);
+                    alert("Could not initialize the AI. Please ensure your API key is set up correctly.");
+                }
+            }
+            
             // --- DOM Elements ---
+            const sidebarButtons = document.querySelectorAll('.sidebar-btn');
+            const viewTitle = document.getElementById('view-title');
+            const views = {
+                chat: document.getElementById('view-chat'),
+                image: document.getElementById('view-image'),
+                video: document.getElementById('view-video'),
+                analyzer: document.getElementById('view-analyzer'),
+                live: document.getElementById('view-live'),
+                sync: document.getElementById('view-sync')
+            };
+            const p2pStatusContainer = document.getElementById('p2p-status-container');
+            const disconnectBtn = document.getElementById('disconnect-btn');
+
+            // --- UI & Utility Functions ---
+            const setLoading = (element, loading) => {
+                isGenerating = loading;
+                if (loading) {
+                    element.disabled = true;
+                    const loader = document.createElement('div');
+                    loader.className = 'loader';
+                    element.innerHTML = '';
+                    element.appendChild(loader);
+                } else {
+                    element.disabled = false;
+                    // Restore original text (this is a simplified approach)
+                    element.innerHTML = element.dataset.originalText || 'Generate';
+                }
+            };
+
+            const showView = (viewId) => {
+                currentView = viewId;
+                for (const id in views) {
+                    views[id].classList.add('hidden');
+                }
+                views[viewId].classList.remove('hidden');
+
+                sidebarButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.view === viewId);
+                });
+                
+                const title = viewId.charAt(0).toUpperCase() + viewId.slice(1);
+                viewTitle.textContent = title.replace('Image', 'Image Studio').replace('Video', 'Video Studio');
+
+                p2pStatusContainer.classList.toggle('hidden', viewId !== 'sync' || !peerConnection);
+                disconnectBtn.classList.toggle('hidden', viewId !== 'sync' || !peerConnection);
+            };
+            
+            const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+
+            // --- GEMINI API HELPERS ---
+            // ... (API-specific functions will be in their respective sections)
+
+            // --- CHAT LOGIC ---
+            const chatHistory = document.getElementById('chat-history');
+            const chatInput = document.getElementById('chat-input');
+            const chatSendBtn = document.getElementById('chat-send-btn');
+            const chatSearchToggle = document.getElementById('chat-search-toggle');
+            const chatMapsToggle = document.getElementById('chat-maps-toggle');
+
+            const addChatMessage = (role, content, grounding) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex ${role === 'user' ? 'justify-end' : ''}`;
+                const bubble = document.createElement('div');
+                bubble.className = `p-4 rounded-2xl max-w-2xl prose prose-invert ${role === 'user' ? 'bg-indigo-700 text-white rounded-br-none' : 'bg-gray-700 rounded-bl-none'}`;
+                bubble.innerHTML = marked.parse(content);
+                
+                if (grounding && grounding.length > 0) {
+                     const sourcesDiv = document.createElement('div');
+                     sourcesDiv.className = 'mt-4 border-t border-gray-600 pt-2';
+                     sourcesDiv.innerHTML = '<h4 class="font-semibold text-sm mb-1 text-gray-400">Sources:</h4>';
+                     const sourcesList = document.createElement('ul');
+                     sourcesList.className = 'list-disc list-inside text-sm space-y-1';
+                     grounding.forEach(chunk => {
+                        const source = chunk.web || (chunk.maps ? {uri: chunk.maps.uri, title: chunk.maps.placeInfos[0]?.displayName} : null);
+                        if (source && source.uri) {
+                            const li = document.createElement('li');
+                            li.innerHTML = `<a href="${source.uri}" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">${source.title || source.uri}</a>`;
+                            sourcesList.appendChild(li);
+                        }
+                     });
+                     bubble.appendChild(sourcesDiv);
+                }
+
+                if (role === 'model') {
+                    const ttsButton = document.createElement('button');
+                    ttsButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>`;
+                    ttsButton.className = 'text-gray-400 hover:text-white mt-2';
+                    ttsButton.onclick = () => playTTS(content);
+                    bubble.appendChild(ttsButton);
+                }
+                
+                messageDiv.appendChild(bubble);
+                chatHistory.appendChild(messageDiv);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            };
+
+            const handleChatSubmit = async () => {
+                const prompt = chatInput.value.trim();
+                if (!prompt || isGenerating) return;
+
+                chatInput.value = '';
+                addChatMessage('user', prompt);
+                setLoading(chatSendBtn, true);
+
+                try {
+                    let response;
+                    const useSearch = chatSearchToggle.checked;
+                    const useMaps = chatMapsToggle.checked;
+                    
+                    const tools = [];
+                    if (useSearch) tools.push({googleSearch: {}});
+                    if (useMaps) tools.push({googleMaps: {}});
+                    
+                    if (tools.length > 0) {
+                         const toolConfig = {};
+                         if(useMaps) {
+                            try {
+                               const position = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej));
+                               toolConfig.retrievalConfig = { latLng: { latitude: position.coords.latitude, longitude: position.coords.longitude } };
+                            } catch(e) {
+                                console.warn("Could not get geolocation for Maps grounding.", e);
+                            }
+                         }
+                        response = await ai.models.generateContent({ 
+                            model: 'gemini-2.5-flash', 
+                            contents: prompt,
+                            config: { tools },
+                            ...(Object.keys(toolConfig).length > 0 && { toolConfig })
+                        });
+                    } else {
+                        response = await chat.sendMessage({ message: prompt });
+                    }
+                    
+                    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+                    addChatMessage('model', response.text, groundingChunks);
+
+                } catch (error) {
+                    console.error('Chat error:', error);
+                    addChatMessage('model', `Sorry, I encountered an error: ${error.message}`);
+                } finally {
+                    setLoading(chatSendBtn, false);
+                    chatSendBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>`;
+                }
+            };
+
+            const playTTS = async (text) => {
+                try {
+                    const response = await ai.models.generateContent({
+                        model: "gemini-2.5-flash-preview-tts",
+                        contents: [{ parts: [{ text: text }] }],
+                        config: {
+                            responseModalities: [Modality.AUDIO],
+                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } }
+                        },
+                    });
+
+                    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                    if (!base64Audio) throw new Error("No audio data received.");
+                    
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)({sampleRate: 24000});
+                    const audioBytes = decode(base64Audio);
+                    const audioBuffer = await decodeAudioData(audioBytes, audioContext, 24000, 1);
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(audioContext.destination);
+                    source.start();
+                } catch (error) {
+                    console.error("TTS Error:", error);
+                    alert("Sorry, could not play the audio.");
+                }
+            };
+            
+            // --- IMAGE STUDIO LOGIC ---
+            const igenPrompt = document.getElementById('igen-prompt');
+            const igenAspectRatio = document.getElementById('igen-aspect-ratio');
+            const igenGenerateBtn = document.getElementById('igen-generate-btn');
+            const igenOutput = document.getElementById('igen-output');
+            igenGenerateBtn.dataset.originalText = 'Generate';
+
+            const ieditUpload = document.getElementById('iedit-upload');
+            const ieditPreview = document.getElementById('iedit-preview');
+            const ieditPrompt = document.getElementById('iedit-prompt');
+            const ieditGenerateBtn = document.getElementById('iedit-generate-btn');
+            const ieditOutput = document.getElementById('iedit-output');
+            ieditGenerateBtn.dataset.originalText = 'Apply Edit';
+            let ieditUploadedFile = null;
+
+            const handleImageGeneration = async () => {
+                const prompt = igenPrompt.value.trim();
+                if (!prompt || isGenerating) return;
+                setLoading(igenGenerateBtn, true);
+                igenOutput.innerHTML = '<div class="loader"></div>';
+                try {
+                    const response = await ai.models.generateImages({
+                        model: 'imagen-4.0-generate-001',
+                        prompt: prompt,
+                        config: {
+                            numberOfImages: 1,
+                            outputMimeType: 'image/png',
+                            aspectRatio: igenAspectRatio.value,
+                        },
+                    });
+                    const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+                    const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                    igenOutput.innerHTML = `<img src="${imageUrl}" class="max-h-full max-w-full object-contain rounded-lg">`;
+                } catch (error) {
+                    console.error('Image generation error:', error);
+                    igenOutput.innerHTML = `<p class="text-red-400 p-4">Error: ${error.message}</p>`;
+                } finally {
+                    setLoading(igenGenerateBtn, false);
+                }
+            };
+
+            const handleImageEdit = async () => {
+                 const prompt = ieditPrompt.value.trim();
+                if (!prompt || !ieditUploadedFile || isGenerating) {
+                    alert("Please upload an image and provide an edit instruction.");
+                    return;
+                }
+                setLoading(ieditGenerateBtn, true);
+                ieditOutput.innerHTML = '<div class="loader"></div>';
+
+                try {
+                    const base64Data = await blobToBase64(ieditUploadedFile);
+                    const imagePart = { inlineData: { mimeType: ieditUploadedFile.type, data: base64Data } };
+                    const textPart = { text: prompt };
+
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-2.5-flash-image',
+                        contents: { parts: [imagePart, textPart] },
+                        config: { responseModalities: [Modality.IMAGE] },
+                    });
+
+                    const part = response.candidates[0].content.parts.find(p => p.inlineData);
+                    if (part) {
+                        const base64ImageBytes = part.inlineData.data;
+                        const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                        ieditOutput.innerHTML = `<img src="${imageUrl}" class="max-h-full max-w-full object-contain rounded-lg">`;
+                    } else {
+                        throw new Error("No image was returned from the API.");
+                    }
+                } catch (error) {
+                    console.error('Image editing error:', error);
+                    ieditOutput.innerHTML = `<p class="text-red-400 p-4">Error: ${error.message}</p>`;
+                } finally {
+                    setLoading(ieditGenerateBtn, false);
+                }
+            };
+            
+            // --- VIDEO STUDIO LOGIC ---
+            const vgenUpload = document.getElementById('vgen-upload');
+            const vgenPrompt = document.getElementById('vgen-prompt');
+            const vgenAspectRatio = document.getElementById('vgen-aspect-ratio');
+            const vgenGenerateBtn = document.getElementById('vgen-generate-btn');
+            const vgenOutput = document.getElementById('vgen-output');
+            vgenGenerateBtn.dataset.originalText = 'Generate Video';
+            let vgenUploadedFile = null;
+            
+            const handleVideoGeneration = async () => {
+                const prompt = vgenPrompt.value.trim();
+                if ((!prompt && !vgenUploadedFile) || isGenerating) {
+                    alert("Please provide a prompt and/or an image.");
+                    return;
+                }
+                
+                // Veo API Key Check
+                if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
+                    const userChoice = confirm("Video generation with Veo requires selecting an API key. This may incur costs. Please see the billing documentation for details. Do you want to proceed?");
+                    if (userChoice) {
+                        await window.aistudio.openSelectKey();
+                        // Assume success after dialog opens to avoid race conditions.
+                        // Re-create the AI instance to pick up the new key.
+                        initializeApi();
+                    } else {
+                        return;
+                    }
+                } else if (!window.aistudio) {
+                    console.warn("aistudio helper not found, proceeding without key check.");
+                }
+
+                setLoading(vgenGenerateBtn, true);
+                vgenOutput.innerHTML = '<div class="text-center p-4"><div class="loader mx-auto"></div><p class="mt-4">Generating video... This can take several minutes.</p><p class="text-sm text-gray-400">Polling for results every 10 seconds.</p></div>';
+
+                try {
+                    const payload = {
+                        model: 'veo-3.1-fast-generate-preview',
+                        prompt: prompt,
+                        config: {
+                            numberOfVideos: 1,
+                            resolution: '720p',
+                            aspectRatio: vgenAspectRatio.value,
+                        }
+                    };
+                    if(vgenUploadedFile) {
+                        payload.image = {
+                            imageBytes: await blobToBase64(vgenUploadedFile),
+                            mimeType: vgenUploadedFile.type,
+                        }
+                    }
+
+                    let operation = await ai.models.generateVideos(payload);
+
+                    while (!operation.done) {
+                        await new Promise(resolve => setTimeout(resolve, 10000));
+                        operation = await ai.operations.getVideosOperation({ operation: operation });
+                    }
+
+                    if (operation.error) throw new Error(operation.error.message);
+
+                    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+                    if(!downloadLink) throw new Error("Video generation completed, but no download link was found.");
+                    
+                    const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+                    const videoBlob = await response.blob();
+                    const videoUrl = URL.createObjectURL(videoBlob);
+                    
+                    vgenOutput.innerHTML = `<video controls autoplay loop class="w-full h-full rounded-lg"><source src="${videoUrl}" type="video/mp4"></video>`;
+
+                } catch (error) {
+                    console.error('Video generation error:', error);
+                    let errorMessage = error.message;
+                     if (error.message.includes("Requested entity was not found")) {
+                        errorMessage = "API Key not found or invalid. Please re-select your API key.";
+                        // Optionally reset state to force re-selection next time
+                    }
+                    vgenOutput.innerHTML = `<p class="text-red-400 p-4">Error: ${errorMessage}</p>`;
+                } finally {
+                    setLoading(vgenGenerateBtn, false);
+                }
+            };
+
+            // --- CONTENT ANALYZER LOGIC ---
+            const analyzerUpload = document.getElementById('analyzer-upload');
+            const analyzerPrompt = document.getElementById('analyzer-prompt');
+            const analyzerThinkingToggle = document.getElementById('analyzer-thinking-toggle');
+            const analyzerGenerateBtn = document.getElementById('analyzer-generate-btn');
+            const analyzerOutput = document.getElementById('analyzer-output');
+            analyzerGenerateBtn.dataset.originalText = 'Analyze';
+            let analyzerUploadedFile = null;
+
+            const handleAnalysis = async () => {
+                const prompt = analyzerPrompt.value.trim();
+                if (!prompt || !analyzerUploadedFile || isGenerating) {
+                    alert("Please upload a file and provide a question.");
+                    return;
+                }
+                setLoading(analyzerGenerateBtn, true);
+                analyzerOutput.innerHTML = '<div class="loader"></div>';
+                try {
+                    const base64Data = await blobToBase64(analyzerUploadedFile);
+                    const filePart = { inlineData: { mimeType: analyzerUploadedFile.type, data: base64Data } };
+                    
+                    const isVideo = analyzerUploadedFile.type.startsWith('video/');
+                    const useThinking = analyzerThinkingToggle.checked;
+
+                    const model = isVideo || useThinking ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+                    const config = {};
+                    if (useThinking) {
+                        config.thinkingConfig = { thinkingBudget: 32768 };
+                    }
+
+                    const response = await ai.models.generateContent({
+                        model: model,
+                        contents: { parts: [filePart, { text: prompt }] },
+                        ...(Object.keys(config).length > 0 && { config })
+                    });
+
+                    analyzerOutput.innerHTML = marked.parse(response.text);
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    analyzerOutput.innerHTML = `<p class="text-red-400">Error: ${error.message}</p>`;
+                } finally {
+                    setLoading(analyzerGenerateBtn, false);
+                }
+            };
+
+            // --- LIVE CONVERSATION LOGIC ---
+            const liveToggleBtn = document.getElementById('live-toggle-btn');
+            const liveStatus = document.getElementById('live-status');
+            const liveTranscription = document.getElementById('live-transcription');
+            
+            const handleLiveToggle = () => {
+                if (liveSessionPromise) {
+                    stopLiveConversation();
+                } else {
+                    startLiveConversation();
+                }
+            };
+            
+            const startLiveConversation = async () => {
+                try {
+                    localMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    liveToggleBtn.textContent = 'Stop Conversation';
+                    liveToggleBtn.classList.replace('bg-green-600', 'bg-red-600');
+                    liveToggleBtn.classList.replace('hover:bg-green-700', 'hover:bg-red-700');
+                    liveStatus.textContent = "Status: Connecting...";
+                    liveTranscription.innerHTML = '';
+                    
+                    inputAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+                    outputAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+                    nextAudioStartTime = 0;
+
+                    liveSessionPromise = ai.live.connect({
+                        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                        callbacks: {
+                            onopen: () => {
+                                liveStatus.textContent = "Status: Connected and Listening...";
+                                const source = inputAudioContext.createMediaStreamSource(localMediaStream);
+                                scriptProcessorNode = inputAudioContext.createScriptProcessor(4096, 1, 1);
+                                scriptProcessorNode.onaudioprocess = (audioProcessingEvent) => {
+                                    const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                                    const pcmBlob = createPcmBlob(inputData);
+                                    liveSessionPromise.then((session) => session.sendRealtimeInput({ media: pcmBlob }));
+                                };
+                                source.connect(scriptProcessorNode);
+                                scriptProcessorNode.connect(inputAudioContext.destination);
+                            },
+                            onmessage: (message) => handleLiveMessage(message),
+                            onerror: (e) => {
+                                console.error('Live session error:', e);
+                                liveStatus.textContent = `Error: ${e.message}`;
+                                stopLiveConversation();
+                            },
+                            onclose: () => {
+                                console.log('Live session closed.');
+                                if (liveSessionPromise) stopLiveConversation(); // Ensure cleanup if closed unexpectedly
+                            },
+                        },
+                        config: {
+                            responseModalities: [Modality.AUDIO],
+                            outputAudioTranscription: {},
+                            inputAudioTranscription: {},
+                        },
+                    });
+
+                } catch (error) {
+                    console.error("Failed to start live conversation:", error);
+                    liveStatus.textContent = "Error: Could not access microphone.";
+                    stopLiveConversation(); // cleanup
+                }
+            };
+
+            const stopLiveConversation = () => {
+                liveToggleBtn.textContent = 'Start Conversation';
+                liveToggleBtn.classList.replace('bg-red-600', 'bg-green-600');
+                liveToggleBtn.classList.replace('hover:bg-red-700', 'hover:bg-green-700');
+                liveStatus.textContent = "Status: Idle";
+                
+                if (liveSessionPromise) {
+                    liveSessionPromise.then(session => session.close());
+                    liveSessionPromise = null;
+                }
+                if (localMediaStream) {
+                    localMediaStream.getTracks().forEach(track => track.stop());
+                    localMediaStream = null;
+                }
+                if (scriptProcessorNode) {
+                    scriptProcessorNode.disconnect();
+                    scriptProcessorNode = null;
+                }
+                if (inputAudioContext) inputAudioContext.close();
+                if (outputAudioContext) outputAudioContext.close();
+                liveAudioSources.forEach(source => source.stop());
+                liveAudioSources.clear();
+            };
+
+            const handleLiveMessage = async (message) => {
+                 if (message.serverContent?.inputTranscription) {
+                    currentInputTranscription += message.serverContent.inputTranscription.text;
+                 }
+                 if (message.serverContent?.outputTranscription) {
+                    currentOutputTranscription += message.serverContent.outputTranscription.text;
+                 }
+                 if (message.serverContent?.turnComplete) {
+                    const fullInput = currentInputTranscription;
+                    const fullOutput = currentOutputTranscription;
+                    if(fullInput) liveTranscription.innerHTML += `<p><strong>You:</strong> ${fullInput}</p>`;
+                    if(fullOutput) liveTranscription.innerHTML += `<p><strong>Gemini:</strong> ${fullOutput}</p>`;
+                    liveTranscription.scrollTop = liveTranscription.scrollHeight;
+                    currentInputTranscription = '';
+                    currentOutputTranscription = '';
+                 }
+
+                 const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData.data;
+                 if (base64Audio) {
+                     nextAudioStartTime = Math.max(nextAudioStartTime, outputAudioContext.currentTime);
+                     const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContext, 24000, 1);
+                     const source = outputAudioContext.createBufferSource();
+                     source.buffer = audioBuffer;
+                     source.connect(outputAudioContext.destination);
+                     source.addEventListener('ended', () => liveAudioSources.delete(source));
+                     source.start(nextAudioStartTime);
+                     nextAudioStartTime += audioBuffer.duration;
+                     liveAudioSources.add(source);
+                 }
+            };
+
+            const createPcmBlob = (data) => {
+              const l = data.length;
+              const int16 = new Int16Array(l);
+              for (let i = 0; i < l; i++) int16[i] = data[i] * 32768;
+              return { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' };
+            }
+
+            // --- AUDIO DECODING/ENCODING ---
+            function encode(bytes) { let binary = ''; const len = bytes.byteLength; for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]); } return btoa(binary); }
+            function decode(base64) { const binaryString = atob(base64); const len = binaryString.length; const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); } return bytes; }
+            async function decodeAudioData(data, ctx, sampleRate, numChannels) { const dataInt16 = new Int16Array(data.buffer); const frameCount = dataInt16.length / numChannels; const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate); for (let channel = 0; channel < numChannels; channel++) { const channelData = buffer.getChannelData(channel); for (let i = 0; i < frameCount; i++) { channelData[i] = dataInt16[i * numChannels + channel] / 32768.0; } } return buffer; }
+            
+            // --- DEVICE SYNC (P2P) LOGIC ---
             const statusIndicator = document.getElementById('status-indicator');
             const statusText = document.getElementById('status-text');
             const dashboardArea = document.getElementById('dashboard-area');
-            const connectionArea = document.getElementById('connection-area');
             const preConnectBtns = document.getElementById('pre-connect-btns');
-            
             const createSessionBtn = document.getElementById('create-session-btn');
             const joinSessionBtn = document.getElementById('join-session-btn');
-            
             const sharedClipboard = document.getElementById('shared-clipboard');
             const fileInput = document.getElementById('file-input');
             const fileLogList = document.getElementById('file-log-list');
-
             const findDeviceBtn = document.getElementById('find-device-btn');
             const notificationInput = document.getElementById('notification-input');
             const sendNotificationBtn = document.getElementById('send-notification-btn');
-
             const clipboardToggle = document.getElementById('clipboard-toggle');
             const notificationsToggle = document.getElementById('notifications-toggle');
-
             const qrModal = document.getElementById('qr-modal');
             const qrModalTitle = document.getElementById('qr-modal-title');
             const qrModalText = document.getElementById('qr-modal-text');
             const qrCodeContainer = document.getElementById('qr-code-container');
             const qrScanner = document.getElementById('qr-scanner');
             const qrModalClose = document.getElementById('qr-modal-close');
-
-            // --- State Variables ---
-            let peerConnection;
-            let dataChannel;
-            let audioContext;
-            let oscillator;
-            let isRinging = false;
-            let scannerAnimation;
-            let localStream;
+            const qrModalNext = document.getElementById('qr-modal-next');
+            let peerConnection, dataChannel, audioContext, oscillator, isRinging = false, scannerAnimation, p2pLocalStream;
             const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-            const receivingFileMetadata = {};
-            const receivingFileBuffer = {};
-            const CHUNK_SIZE = 16384;
+            const receivingFileMetadata = {}, receivingFileBuffer = {}, CHUNK_SIZE = 16384;
 
-            // --- UI & Status Functions ---
-            const updateStatus = (text, statusClass) => {
-                statusText.textContent = text;
-                statusIndicator.className = `status-dot ${statusClass}`;
-            };
-
-            const logFileMessage = (message, isDownloadLink = false) => {
-                const p = document.createElement('p');
-                p.className = 'text-gray-400';
-                p.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`; // Safely use innerHTML as we control the content
-                fileLogList.prepend(p);
-            };
-
-            const showDashboard = (show) => {
-                if (show) {
-                    dashboardArea.classList.remove('hidden');
-                    preConnectBtns.classList.add('hidden');
-                } else {
-                    dashboardArea.classList.add('hidden');
-                    preConnectBtns.classList.remove('hidden');
-                }
-            };
-
-            const showQrModal = (opts) => { // {mode: 'generate'/'scan', title, text, data}
-                qrModalTitle.textContent = opts.title;
-                qrModalText.textContent = opts.text;
-                qrCodeContainer.innerHTML = '';
-                qrScanner.classList.add('hidden');
-
-                if (opts.mode === 'generate') {
-                    const canvas = document.createElement('canvas');
-                    qrCodeContainer.appendChild(canvas);
-                    QRCode.toCanvas(canvas, opts.data, { width: 256 }, (error) => {
-                        if (error) console.error(error);
-                    });
-                } else if (opts.mode === 'scan') {
-                    qrScanner.classList.remove('hidden');
-                    startScanner();
-                }
-                qrModal.classList.remove('hidden');
-            };
-            
-            const hideQrModal = () => {
-                stopScanner();
-                qrModal.classList.add('hidden');
-            };
-
-            // --- WebRTC Core Logic ---
-            const setupPeerConnection = () => {
-                peerConnection = new RTCPeerConnection(configuration);
-
-                peerConnection.onicecandidate = event => {
-                     // ICE gathering is handled automatically. We just need to signal the final description.
-                };
-
-                peerConnection.ondatachannel = event => {
-                    dataChannel = event.channel;
-                    setupDataChannelEvents();
-                };
-
-                peerConnection.onconnectionstatechange = () => {
-                    switch(peerConnection.connectionState) {
-                        case 'connected':
-                            updateStatus('Connected', 'status-connected');
-                            showDashboard(true);
-                            hideQrModal();
-                            break;
-                        case 'disconnected':
-                        case 'closed':
-                        case 'failed':
-                            updateStatus('Disconnected', 'status-disconnected');
-                            showDashboard(false);
-                            break;
-                        case 'connecting':
-                            updateStatus('Connecting...', 'status-connecting');
-                            break;
-                    }
-                };
-                return peerConnection;
-            };
-
-            const setupDataChannelEvents = () => {
-                dataChannel.onopen = () => console.log('Data channel is open');
-                dataChannel.onclose = () => console.log('Data channel is closed');
-                dataChannel.onmessage = event => handleDataChannelMessage(event.data);
-            };
-
-            // --- Handlers ---
-            const handleDataChannelMessage = (data) => {
-                if (data instanceof ArrayBuffer) {
-                    handleFileChunk(data);
-                    return;
-                }
-
-                try {
-                    const message = JSON.parse(data);
-                    switch(message.type) {
-                        case 'clipboard':
-                            if (clipboardToggle.checked) sharedClipboard.value = message.content;
-                            break;
-                        case 'file-meta':
-                            handleFileMeta(message.payload);
-                            break;
-                        case 'file-end':
-                            handleFileEnd(message.payload);
-                            break;
-                        case 'find-device':
-                            toggleRingtone();
-                            break;
-                        case 'notification':
-                            if (notificationsToggle.checked) showNotification(message.payload);
-                            break;
-                        case 'answer': // Answer received via data channel (after initial connection)
-                             if (peerConnection && peerConnection.signalingState === "have-local-offer") {
-                                peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(message.payload)));
-                             }
-                            break;
-                    }
-                } catch (error) {
-                    console.error('Failed to parse message:', error);
-                }
-            };
-            
-            // File Handling
-            const handleFileMeta = ({ name, size, type }) => {
-                receivingFileMetadata[name] = { size, type };
-                receivingFileBuffer[name] = [];
-                const formattedSize = (size / 1024 / 1024).toFixed(2);
-                logFileMessage(`Receiving: ${name} (${formattedSize} MB)`);
-            };
-
-            const handleFileEnd = ({ name }) => {
-                const fileData = receivingFileMetadata[name];
-                if(fileData && receivingFileBuffer[name]) {
-                    const receivedBlob = new Blob(receivingFileBuffer[name], { type: fileData.type });
-                    const downloadUrl = URL.createObjectURL(receivedBlob);
-                    const logMessage = `Received "${name}". <a href="${downloadUrl}" download="${name}" class="text-green-400 hover:underline font-bold">Download</a>.`;
-                    logFileMessage(logMessage);
-                    delete receivingFileMetadata[name];
-                    delete receivingFileBuffer[name];
-                }
-            };
-
-            const handleFileChunk = (chunk) => {
-                const fileName = Object.keys(receivingFileMetadata)[0];
-                if (fileName && receivingFileBuffer[fileName]) {
-                    receivingFileBuffer[fileName].push(chunk);
-                }
-            };
-            
-            const sendFile = (file) => {
-                if (!dataChannel || dataChannel.readyState !== 'open') return;
-                logFileMessage(`Sending: ${file.name}`);
-
-                dataChannel.send(JSON.stringify({ type: 'file-meta', payload: { name: file.name, size: file.size, type: file.type } }));
-                
-                let offset = 0;
-                const fileReader = new FileReader();
-                fileReader.onload = (e) => {
-                    dataChannel.send(e.target.result);
-                    offset += e.target.result.byteLength;
-                    if (offset < file.size) {
-                        readSlice(offset);
-                    } else {
-                        dataChannel.send(JSON.stringify({ type: 'file-end', payload: { name: file.name }}));
-                        logFileMessage(`Finished sending ${file.name}.`);
-                    }
-                };
-                const readSlice = (o) => {
-                    const slice = file.slice(o, o + CHUNK_SIZE);
-                    fileReader.readAsArrayBuffer(slice);
-                };
-                readSlice(0);
-            };
-
-            // --- Feature Functions ---
-            const toggleRingtone = () => {
-                if (isRinging) {
-                    oscillator.stop();
-                    audioContext.close();
-                    isRinging = false;
-                    alert('Ringtone stopped.');
-                } else {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(900, audioContext.currentTime);
-                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-                    gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.01);
-                    
-                    oscillator.start();
-                    isRinging = true;
-
-                    alert("'Find My Device' activated! Click OK to stop the sound.");
-                    toggleRingtone(); // Immediately stop it after acknowledgment
-                }
-            };
-            
-            const showNotification = ({ title, body }) => {
-                if (!("Notification" in window)) {
-                    alert("This browser does not support desktop notification");
-                    return;
-                }
-                if (Notification.permission === "granted") {
-                    new Notification(title, { body });
-                } else if (Notification.permission !== "denied") {
-                    Notification.requestPermission().then((permission) => {
-                        if (permission === "granted") {
-                            new Notification(title, { body });
-                        }
-                    });
-                }
-            };
-            
+            const updateStatus = (text, statusClass) => { statusText.textContent = text; statusIndicator.className = `status-dot ${statusClass}`; };
+            const logFileMessage = (message) => { const p = document.createElement('p'); p.className = 'text-gray-400'; p.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`; fileLogList.prepend(p); };
+            const showDashboard = (show) => { if (show) { dashboardArea.classList.remove('hidden'); preConnectBtns.classList.add('hidden'); p2pStatusContainer.classList.remove('hidden'); disconnectBtn.classList.remove('hidden'); } else { dashboardArea.classList.add('hidden'); preConnectBtns.classList.remove('hidden'); p2pStatusContainer.classList.add('hidden'); disconnectBtn.classList.add('hidden'); } };
+            const showQrModal = (opts) => { qrModalTitle.textContent = opts.title; qrModalText.textContent = opts.text || ''; qrCodeContainer.innerHTML = ''; qrScanner.classList.add('hidden'); qrModalNext.classList.add('hidden'); if (opts.mode === 'generate') { const canvas = document.createElement('canvas'); qrCodeContainer.appendChild(canvas); QRCode.toCanvas(canvas, opts.data, { width: 256 }, (error) => { if (error) console.error(error); }); if (opts.nextStep === 'scan') qrModalNext.classList.remove('hidden'); } else if (opts.mode === 'scan') { qrScanner.classList.remove('hidden'); startScanner(); } qrModal.classList.remove('hidden'); };
+            const hideQrModal = () => { stopScanner(); qrModal.classList.add('hidden'); };
+            const setupPeerConnection = () => { peerConnection = new RTCPeerConnection(configuration); peerConnection.ondatachannel = event => { dataChannel = event.channel; setupDataChannelEvents(); }; peerConnection.onconnectionstatechange = () => { switch(peerConnection.connectionState) { case 'connected': updateStatus('Connected', 'status-connected'); showDashboard(true); hideQrModal(); break; case 'disconnected': case 'closed': case 'failed': updateStatus('Disconnected', 'status-disconnected'); showDashboard(false); if(peerConnection) peerConnection.close(); peerConnection = null; break; case 'connecting': updateStatus('Connecting...', 'status-connecting'); break; } }; return peerConnection; };
+            const setupDataChannelEvents = () => { dataChannel.onopen = () => console.log('Data channel is open'); dataChannel.onclose = () => console.log('Data channel is closed'); dataChannel.onmessage = event => handleDataChannelMessage(event.data); };
+            const handleDataChannelMessage = (data) => { if (data instanceof ArrayBuffer) { handleFileChunk(data); return; } try { const message = JSON.parse(data); switch(message.type) { case 'clipboard': if (clipboardToggle.checked) sharedClipboard.value = message.content; break; case 'file-meta': handleFileMeta(message.payload); break; case 'file-end': handleFileEnd(message.payload); break; case 'find-device': toggleRingtone(); break; case 'notification': if (notificationsToggle.checked) showNotification(message.payload); break; } } catch (error) { console.error('Failed to parse message:', error); } };
+            const handleFileMeta = ({ name, size, type }) => { receivingFileMetadata[name] = { size, type }; receivingFileBuffer[name] = []; const formattedSize = (size / 1024 / 1024).toFixed(2); logFileMessage(`Receiving: ${name} (${formattedSize} MB)`); };
+            const handleFileEnd = ({ name }) => { const fileData = receivingFileMetadata[name]; if(fileData && receivingFileBuffer[name]) { const receivedBlob = new Blob(receivingFileBuffer[name], { type: fileData.type }); const downloadUrl = URL.createObjectURL(receivedBlob); const logMessage = `Received "${name}". <a href="${downloadUrl}" download="${name}" class="text-green-400 hover:underline font-bold">Download</a>.`; logFileMessage(logMessage); delete receivingFileMetadata[name]; delete receivingFileBuffer[name]; } };
+            const handleFileChunk = (chunk) => { const fileName = Object.keys(receivingFileMetadata)[0]; if (fileName && receivingFileBuffer[fileName]) { receivingFileBuffer[fileName].push(chunk); } };
+            const sendFile = (file) => { if (!dataChannel || dataChannel.readyState !== 'open') return; logFileMessage(`Sending: ${file.name}`); dataChannel.send(JSON.stringify({ type: 'file-meta', payload: { name: file.name, size: file.size, type: file.type } })); let offset = 0; const fileReader = new FileReader(); fileReader.onload = (e) => { dataChannel.send(e.target.result); offset += e.target.result.byteLength; if (offset < file.size) { readSlice(offset); } else { dataChannel.send(JSON.stringify({ type: 'file-end', payload: { name: file.name }})); logFileMessage(`Finished sending ${file.name}.`); } }; const readSlice = (o) => { const slice = file.slice(o, o + CHUNK_SIZE); fileReader.readAsArrayBuffer(slice); }; readSlice(0); };
+            const toggleRingtone = () => { if (isRinging) { if (oscillator) oscillator.stop(); if (audioContext) audioContext.close(); isRinging = false; } else { audioContext = new (window.AudioContext || window.webkitAudioContext)(); oscillator = audioContext.createOscillator(); const gainNode = audioContext.createGain(); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(900, audioContext.currentTime); gainNode.gain.setValueAtTime(0, audioContext.currentTime); gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.01); oscillator.start(); isRinging = true; alert("'Find My Device' activated! Click OK to stop the sound."); toggleRingtone(); } };
+            const showNotification = ({ title, body }) => { if (!("Notification" in window)) { alert("This browser does not support desktop notification"); return; } if (Notification.permission === "granted") { new Notification(title, { body }); } else if (Notification.permission !== "denied") { Notification.requestPermission().then((permission) => { if (permission === "granted") { new Notification(title, { body }); } }); } };
             const startScanner = async () => {
                 try {
-                    localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    qrScanner.srcObject = localStream;
+                    p2pLocalStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                    qrScanner.srcObject = p2pLocalStream;
                     qrScanner.play();
                     scannerAnimation = requestAnimationFrame(tick);
                 } catch (err) {
-                    console.error("Error accessing camera", err);
-                    qrModalText.textContent = "Could not access camera. Please grant permission.";
-                }
-            };
-
-            const stopScanner = () => {
-                if (scannerAnimation) cancelAnimationFrame(scannerAnimation);
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                }
-                qrScanner.srcObject = null;
-            };
-            
-            const tick = () => {
-                if (qrScanner.readyState === qrScanner.HAVE_ENOUGH_DATA) {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.height = qrScanner.videoHeight;
-                    canvas.width = qrScanner.videoWidth;
-                    ctx.drawImage(qrScanner, 0, 0, canvas.width, canvas.height);
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-                    
-                    if (code) {
-                        handleQrCode(code.data);
-                        return;
+                    console.error("Error accessing camera:", err.name, err.message);
+                    let userMessage = '';
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        userMessage = `<b>Camera access denied.</b><br>You need to grant camera permission to scan QR codes. Please check your browser's site settings.`;
+                    } else if (err.name === 'NotFoundError') {
+                        userMessage = `<b>No camera found.</b><br>Please ensure you have a camera connected and enabled.`;
+                    } else {
+                         userMessage = `<b>Could not access camera.</b><br>An unexpected error occurred. Please ensure your camera is not in use by another application and try again.`;
                     }
-                }
-                scannerAnimation = requestAnimationFrame(tick);
-            };
-
-            const handleQrCode = async (data) => {
-                stopScanner();
-                try {
-                    const offer = JSON.parse(data);
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-
-                    // Now, the joining device needs to send its answer back.
-                    // We'll generate a QR code for the answer.
-                    const answerSdp = JSON.stringify(peerConnection.localDescription);
-                    showQrModal({
-                        mode: 'generate',
-                        title: 'Scan Answer on Other Device',
-                        text: 'Now, use the first device to scan this answer QR code to complete the connection.',
-                        data: answerSdp
-                    });
-
-                } catch (error) {
-                    console.error('Failed to process QR code data:', error);
-                    alert('Invalid QR code. Please try again.');
-                    hideQrModal();
+                    qrModalText.innerHTML = userMessage;
+                    qrScanner.classList.add('hidden');
                 }
             };
+            const stopScanner = () => { if (scannerAnimation) cancelAnimationFrame(scannerAnimation); if (p2pLocalStream) { p2pLocalStream.getTracks().forEach(track => track.stop()); } qrScanner.srcObject = null; };
+            const tick = () => { if (qrScanner.readyState === qrScanner.HAVE_ENOUGH_DATA) { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.height = qrScanner.videoHeight; canvas.width = qrScanner.videoWidth; ctx.drawImage(qrScanner, 0, 0, canvas.width, canvas.height); const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height); const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" }); if (code) { handleQrCode(code.data); return; } } scannerAnimation = requestAnimationFrame(tick); };
+            const handleQrCode = async (data) => { stopScanner(); try { const sdp = JSON.parse(data); if (sdp.type === 'offer') { await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp)); const answer = await peerConnection.createAnswer(); await peerConnection.setLocalDescription(answer); const answerSdp = JSON.stringify(peerConnection.localDescription); showQrModal({ mode: 'generate', title: 'Scan Answer on Other Device', text: 'Now, use the first device to scan this answer QR code to complete the connection.', data: answerSdp }); } else if (sdp.type === 'answer') { if (peerConnection && peerConnection.signalingState === "have-local-offer") { await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp)); } else { throw new Error("Received an answer but was not expecting one."); } } else { throw new Error("QR code does not contain valid SDP data."); } } catch (error) { console.error('Failed to process QR code data:', error); alert(`Invalid QR code: ${error.message}. Please try again.`); hideQrModal(); } };
             
-            // --- Event Listeners ---
-            createSessionBtn.addEventListener('click', async () => {
-                const pc = setupPeerConnection();
-                dataChannel = pc.createDataChannel('unify-channel');
-                setupDataChannelEvents();
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                
-                // Wait for ICE gathering to complete to get the full offer
-                pc.onicegatheringstatechange = () => {
-                    if (pc.iceGatheringState === 'complete') {
-                        const offerSdp = JSON.stringify(pc.localDescription);
-                        showQrModal({ 
-                            mode: 'generate', 
-                            title: 'Session Offer',
-                            text: 'Scan this with your other device to connect.',
-                            data: offerSdp
-                        });
-                    }
-                };
-            });
-
-            joinSessionBtn.addEventListener('click', () => {
-                const pc = setupPeerConnection();
-                showQrModal({ 
-                    mode: 'scan',
-                    title: 'Scan Session Offer',
-                    text: 'Point your camera at the QR code on the other device.'
-                });
-            });
-
-            qrModalClose.addEventListener('click', hideQrModal);
-
-            sharedClipboard.addEventListener('input', (e) => {
-                if (dataChannel && dataChannel.readyState === 'open' && clipboardToggle.checked) {
-                    dataChannel.send(JSON.stringify({ type: 'clipboard', content: e.target.value }));
-                }
-            });
-
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) sendFile(file);
+            // --- EVENT LISTENERS ---
+            initializeApi();
+            showView('chat');
+            
+            sidebarButtons.forEach(btn => {
+                btn.addEventListener('click', () => showView(btn.dataset.view));
             });
             
-            findDeviceBtn.addEventListener('click', () => {
-                 if (dataChannel && dataChannel.readyState === 'open') {
-                    dataChannel.send(JSON.stringify({ type: 'find-device' }));
-                 }
-            });
+            // Chat
+            chatSendBtn.addEventListener('click', handleChatSubmit);
+            chatInput.addEventListener('keydown', (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(); }});
+            chatInput.addEventListener('input', () => { chatInput.style.height = 'auto'; chatInput.style.height = (chatInput.scrollHeight) + 'px'; });
 
-            sendNotificationBtn.addEventListener('click', () => {
-                const msg = notificationInput.value.trim();
-                if (msg && dataChannel && dataChannel.readyState === 'open' && notificationsToggle.checked) {
-                    dataChannel.send(JSON.stringify({ type: 'notification', payload: { title: 'New Message', body: msg }}));
-                    notificationInput.value = '';
-                }
+            // Image Studio
+            igenGenerateBtn.addEventListener('click', handleImageGeneration);
+            ieditGenerateBtn.addEventListener('click', handleImageEdit);
+            ieditUpload.addEventListener('change', (e) => {
+                ieditUploadedFile = e.target.files[0];
+                if(ieditUploadedFile) ieditPreview.innerHTML = `<img src="${URL.createObjectURL(ieditUploadedFile)}" class="max-h-full max-w-full object-contain rounded-lg">`;
             });
-        });
+            
+            // Video Studio
+            vgenGenerateBtn.addEventListener('click', handleVideoGeneration);
+            vgenUpload.addEventListener('change', (e) => { vgenUploadedFile = e.target.files[0]; });
+
+            // Analyzer
+            analyzerGenerateBtn.addEventListener('click', handleAnalysis);
+            analyzerUpload.addEventListener('change', (e) => { analyzerUploadedFile = e.target.files[0]; });
+
+            // Live Conversation
+            liveToggleBtn.addEventListener('click', handleLiveToggle);
+            
+            // Device Sync (P2P)
+            createSessionBtn.addEventListener('click', async () => { const pc = setupPeerConnection(); dataChannel = pc.createDataChannel('unify-channel'); setupDataChannelEvents(); const offer = await pc.createOffer(); await pc.setLocalDescription(offer); pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') { const offerSdp = JSON.stringify(pc.localDescription); showQrModal({ mode: 'generate', title: '1. Scan Offer', text: 'Use your other device to scan this code. Then click the button below.', data: offerSdp, nextStep: 'scan' }); } }; });
+            joinSessionBtn.addEventListener('click', () => { setupPeerConnection(); showQrModal({ mode: 'scan', title: 'Scan Session Offer', text: 'Point your camera at the QR code on the other device.' }); });
+            qrModalNext.addEventListener('click', () => { showQrModal({ mode: 'scan', title: '2. Scan Answer', text: 'Point your camera at the new QR code shown on your other device.' }); });
+            qrModalClose.addEventListener('click', () => { hideQrModal(); if (peerConnection) { peerConnection.close(); peerConnection = null; } });
+            disconnectBtn.addEventListener('click', () => { if (peerConnection) peerConnection.close(); });
+            sharedClipboard.addEventListener('input', (e) => { if (dataChannel && dataChannel.readyState === 'open' && clipboardToggle.checked) { dataChannel.send(JSON.stringify({ type: 'clipboard', content: e.target.value })); } });
+            fileInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (file) { sendFile(file); e.target.value = ''; } });
+            findDeviceBtn.addEventListener('click', () => { if (dataChannel && dataChannel.readyState === 'open') { dataChannel.send(JSON.stringify({ type: 'find-device' })); } });
+            sendNotificationBtn.addEventListener('click', () => { const msg = notificationInput.value.trim(); if (msg && dataChannel && dataChannel.readyState === 'open' && notificationsToggle.checked) { dataChannel.send(JSON.stringify({ type: 'notification', payload: { title: 'New Message', body: msg }})); notificationInput.value = ''; } });
+        }
+
+        const libraryCheckInterval = setInterval(() => {
+            if (window.QRCode && window.jsQR) {
+                clearInterval(libraryCheckInterval);
+                initApp();
+            }
+        }, 100);
     </script>
 </body>
 </html>

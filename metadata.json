@@ -1,7 +1,8 @@
 {
-  "name": "Project UNIFY - Web Prototype",
-  "description": "A web-based prototype for a secure, peer-to-peer device suite using WebRTC. Features clipboard/file sharing, notification sync, and 'find my device' functionality, all connected via a QR code handshake.",
+  "name": "Gemini Suite",
+  "description": "A multi-functional creative and productivity application powered by the Gemini API. Features include advanced chat with grounding, image/video generation and editing, content analysis, and real-time voice conversations. Also includes peer-to-peer device synchronization.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone"
   ]
 }
